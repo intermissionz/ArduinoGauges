@@ -27,7 +27,10 @@ void setup() {
 
 void loop() {
   display.clearDisplay();
-  DisplaySensorReading(oilPressureSensor);
+  display.setCursor(0, 16);
+  display.print("Test ");
+  display.println(1.23);
+  //DisplaySensorReading(oilPressureSensor);
   //DisplaySensorReading(afrSensor);
   //DisplaySensorReading(ethanolContentSensor);
   display.display();
