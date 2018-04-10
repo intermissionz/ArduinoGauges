@@ -10,7 +10,6 @@
 #include <Wire.h>
 /*constantz*/
 #define OLED_RESET 4
-#define VOLTAGE_MULTIPLIER (5.0 / 1023.0)
 /*initializationz*/
 Adafruit_SH1106 display(OLED_RESET);
 Sensor oilPressureSensor = oilPressure;
@@ -20,27 +19,25 @@ Sensor ethanolContentSensor = ethanolContent;
 void setup() {
   Serial.begin(9600);
   delay(200);
-  display.begin(SH1106_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
+  display.begin(SH1106_SWITCHCAPVCC, 0x3C);
   delay(2000);
   display.setTextSize(2);
+  display.setTextColor(WHITE);
 }
 
 void loop() {
   display.clearDisplay();
-  display.setCursor(0, 16);
-  display.print("Test ");
-  display.println(1.23);
-  //DisplaySensorReading(oilPressureSensor);
-  //DisplaySensorReading(afrSensor);
-  //DisplaySensorReading(ethanolContentSensor);
+  DisplaySensorReading(oilPressureSensor);
+  DisplaySensorReading(afrSensor);
+  DisplaySensorReading(ethanolContentSensor);
   display.display();
 }
-/*
+
 void DisplaySensorReading(Sensor sensor) {
-  //SensorData sensorData = GetSensorData(sensor);
-  display.setCursor(0, 16);
-  display.print("Test ");
-  display.println(1.23);
+  SensorData sensorData = GetSensorData(sensor);
+  display.setCursor(sensorData.x, sensorData.y);
+  display.print(sensorData.label);
+  display.println(sensorData.value);
 }
 
 SensorData GetSensorData(Sensor sensor) {
@@ -108,8 +105,7 @@ double readAnalogInput(Sensor sensor, bool useMultiplier) {
   double value;
   value = analogRead(sensor);
   if(useMultiplier)
-    value = value * VOLTAGE_MULTIPLIER; 
+    value = value * (5.0 / 1023.0); 
 
   return value;
 }
-*/
