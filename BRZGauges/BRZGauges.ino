@@ -28,16 +28,16 @@ void setup() {
 void loop() {
   display.clearDisplay();
   DisplaySensorReading(oilPressureSensor);
-  DisplaySensorReading(afrSensor);
-  DisplaySensorReading(ethanolContentSensor);
+  //DisplaySensorReading(afrSensor);
+  //DisplaySensorReading(ethanolContentSensor);
   display.display();
 }
 
 void DisplaySensorReading(Sensor sensor) {
-  SensorData sensorData = GetSensorData(sensor);
-  display.setCursor(sensorData.x, sensorData.y);
-  display.print(sensorData.label);
-  display.println(sensorData.value);
+  //SensorData sensorData = GetSensorData(sensor);
+  display.setCursor(0, 16);
+  display.print("Test ");
+  display.println(1.23);
 }
 
 SensorData GetSensorData(Sensor sensor) {
