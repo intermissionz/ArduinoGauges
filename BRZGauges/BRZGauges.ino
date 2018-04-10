@@ -2,19 +2,19 @@
 #include <math.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH1106.h>
 #include <Timer.h>
 #include <EEPROM.h>
 #include <SoftwareSerial.h>
 
 #define OLED_RESET 4
 #define VOLTAGE_MULTIPLIER (5.0 / 1023.0)
-Adafruit_SSD1306 display(OLED_RESET);
+Adafruit_SH1106 display(OLED_RESET);
 
 void setup() {
   Serial.begin(9600);
   delay(200);
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
+  display.begin(SH1106_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
   delay(2000);
   display.setTextSize(2);
   display.setTextColor(WHITE);
