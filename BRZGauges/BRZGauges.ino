@@ -35,7 +35,7 @@ void loop() {
   //DisplaySensorReading(ethanolContentSensor);
   display.display();
 }
-
+/*
 void DisplaySensorReading(Sensor sensor) {
   //SensorData sensorData = GetSensorData(sensor);
   display.setCursor(0, 16);
@@ -112,18 +112,4 @@ double readAnalogInput(Sensor sensor, bool useMultiplier) {
 
   return value;
 }
-
-double steinhartHartEquation(int RawADC) { //Function to perform the fancy math of the Steinhart-Hart equation
- double Temp;
- Temp = log(((10240000/RawADC) - 10000));
- Temp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * Temp * Temp ))* Temp );
- Temp = Temp - 273.15;            // Convert Kelvin to Celsius
- Temp = (Temp * 9.0)/ 5.0 + 32.0; // Celsius to Fahrenheit - comment out this line if you need Celsius
- return Temp;
-}
-
-/* old stuffz
- *  
- * double analogOutput0 = analogRead(0);
- * double airTemp = steinhartHartEquation(analogOutput0);
- */
+*/
