@@ -28,11 +28,11 @@ void loop() {
   double analogOutput1 = analogRead(1);
   double oilPressureVoltage = (analogOutput1 * VOLTAGE_MULTIPLIER);
   double analogOutput2 = analogRead(2);
-  double ethanolContent = (analogOutput2 * VOLTAGE_MULTIPLIER * 20);
+  double ethanolContent = 85; //(analogOutput2 * VOLTAGE_MULTIPLIER * 20);
   //-3.13608 * (x*x) + 51.4897 * x - 35.1307
   double oilPressure = -3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307;
   double analogOutput3 = analogRead(3);
-  double lambdaVoltage = (analogOutput3 * VOLTAGE_MULTIPLIER);
+  double lambdaVoltage = .75; //this should output close to 10 //(analogOutput3 * VOLTAGE_MULTIPLIER);
   double lambda = .109364 * (lambdaVoltage * lambdaVoltage * lambdaVoltage) - .234466 * (lambdaVoltage * lambdaVoltage) + .306031 * lambdaVoltage + .71444;
   double AFR = (ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64;
   display.print("AT: ");
