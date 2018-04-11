@@ -1,13 +1,16 @@
-/*localz*/
-#include "sensor.h"
 /*libz*/
 #include <Adafruit_GFX.h>
+#include <Fonts/Picopixel.h>
 #include <Adafruit_SH1106.h>
 #include <EEPROM.h>
 #include <math.h>
 #include <SoftwareSerial.h>
 #include <Timer.h>
 #include <Wire.h>
+/*localz*/ //font loading requires a function from the GFX library, so these must be after the libz.
+#include "sensor.h"
+#include "calibri8pt7b.h"
+#include "tahoma6pt7b.h"
 /*constantz*/
 #define OLED_RESET 4
 /*initializationz*/
@@ -21,8 +24,9 @@ void setup() {
   delay(200);
   display.begin(SH1106_SWITCHCAPVCC, 0x3C);
   delay(2000);
-  display.setTextSize(2);
+  display.setTextSize(1);
   display.setTextColor(WHITE);
+  display.setFont(&tahoma6pt7b);
 }
 
 void loop() {
@@ -30,6 +34,12 @@ void loop() {
   DisplaySensorReading(oilPressureSensor);
   DisplaySensorReading(afrSensor);
   DisplaySensorReading(ethanolContentSensor);
+  display.setCursor(70, 56);
+  display.println("BST: 25");
+  display.setCursor(0, 56);
+  display.println("IAT: 100");
+  display.setCursor(70, 8);
+  display.println("OT: 255");
   display.display();
 }
 
@@ -47,7 +57,7 @@ SensorData GetSensorData(Sensor sensor) {
     case oilPressure:
     {
       sensorData.x = 0;
-      sensorData.y = 0;
+      sensorData.y = 8;
       sensorData.label = "OP: ";
       
       double oilPressureVoltage = readAnalogInput(sensor, true);
@@ -56,8 +66,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case afr:
     {
-      sensorData.x = 0;
-      sensorData.y = 16;
+      sensorData.x = 70;
+      sensorData.y = 32;
       sensorData.label = "AFR:";
 
       double afrVoltage = readAnalogInput(sensor, true);
@@ -100,7 +110,6 @@ SensorData GetSensorData(Sensor sensor) {
 
   return sensorData;
 }
-
 double readAnalogInput(Sensor sensor, bool useMultiplier) {
   double value;
   value = analogRead(sensor);
