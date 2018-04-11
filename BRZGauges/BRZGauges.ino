@@ -1,13 +1,12 @@
 /*libz*/
 #include <Adafruit_GFX.h>
-#include <Fonts/Picopixel.h>
 #include <Adafruit_SH1106.h>
 #include <EEPROM.h>
 #include <math.h>
 #include <SoftwareSerial.h>
 #include <Timer.h>
 #include <Wire.h>
-/*localz*/ //font loading requires a function from the GFX library, so these must be after the libz.
+/*localz - font loading requires a function from the GFX library, so these must be loaded after the libz*/
 #include "sensor.h"
 #include "calibri8pt7b.h"
 #include "tahoma6pt7b.h"
