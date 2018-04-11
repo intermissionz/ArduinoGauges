@@ -1,15 +1,14 @@
 /*libz*/
 #include <Adafruit_GFX.h>
-#include <Adafruit_SH1106.h>
 #include <EEPROM.h>
 #include <math.h>
 #include <SoftwareSerial.h>
 #include <Timer.h>
 #include <Wire.h>
-/*localz - font loading requires a function from the GFX library, so these must be loaded after the libz*/
+/*localz*/
 #include "sensor.h"
+#include "Adafruit_SH1106.h"
 #include "calibri8pt7b.h"
-#include "tahoma6pt7b.h"
 /*constantz*/
 #define OLED_RESET 4
 /*initializationz*/
@@ -39,6 +38,8 @@ void loop() {
   DisplaySensorReading(boostSensor);
   DisplaySensorReading(oilTempSensor);
   DisplaySensorReading(intakeAirTempSensor);
+  //display.drawFastHLine(0, 0, 128, 1);
+  display.drawRect(0, 0, 128, 64, 1);
   display.display();
 }
 
