@@ -38,8 +38,6 @@ void loop() {
   DisplaySensorReading(boostSensor);
   DisplaySensorReading(oilTempSensor);
   DisplaySensorReading(intakeAirTempSensor);
-  //display.drawFastHLine(0, 0, 128, 1);
-  display.drawRect(0, 0, 128, 64, 1);
   display.display();
 }
 
@@ -48,6 +46,13 @@ void DisplaySensorReading(Sensor sensor) {
   display.setCursor(sensorData.x, sensorData.y);
   display.print(sensorData.label);
   display.println(sensorData.displayValue);
+  if(sensorData.x == 5) { //need to draw rectangle differently depending on which column the reading is in
+    display.drawRect(sensorData.x - 5, sensorData.y - 15, 61, 21, 1);
+    }
+  else {
+    display.drawRect(sensorData.x - 4, sensorData.y - 15, 68, 21, 1);
+  }
+  
 }
 
 SensorData GetSensorData(Sensor sensor) {
@@ -57,18 +62,19 @@ SensorData GetSensorData(Sensor sensor) {
     case oilPressure:
     {
       sensorData.x = 5;
-      sensorData.y = 14;
+      sensorData.y = 15;
       sensorData.label = "OP: ";
       
       double oilPressureVoltage = readAnalogInput(sensor, true);
       sensorData.value = -3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307;
       sensorData.displayValue = String(round(sensorData.value), 0);
+      sensorData.alert = 20 > sensorData.value; // arbitrary lower limit
       break;
     }
     case afr:
     {
       sensorData.x = 64;
-      sensorData.y = 36;
+      sensorData.y = 35;
       sensorData.label = "AFR: ";
 
       double afrVoltage = readAnalogInput(sensor, true);
@@ -81,39 +87,43 @@ SensorData GetSensorData(Sensor sensor) {
     case ethanolContent:
     {
       sensorData.x = 5;
-      sensorData.y = 36;
+      sensorData.y = 35;
       sensorData.label = "E%: ";
 
       double ethanolContentVoltage = readAnalogInput(sensor, true);
       sensorData.value = ethanolContentVoltage * 20;
       sensorData.displayValue = String(round(sensorData.value), 0);
+      sensorData.alert = false;
       break;
     }
     case boost:
     {
       sensorData.x = 64;
-      sensorData.y = 58;
+      sensorData.y = 55;
       sensorData.label = "BST: ";
       sensorData.value = 24.8;
       sensorData.displayValue = String(sensorData.value, 1);
+      sensorData.alert = sensorData.value >= 25;
       break;
     }
     case oilTemp:
     {
       sensorData.x = 64;
-      sensorData.y = 14;
+      sensorData.y = 15;
       sensorData.label = "OT: ";
       sensorData.value = 255.3;
       sensorData.displayValue = String(round(sensorData.value), 0);
+      sensorData.alert = 170 >= sensorData.value || sensorData.value >= 230;
       break;
     }
     case intakeAirTemp:
     {
       sensorData.x = 5;
-      sensorData.y = 58;
+      sensorData.y = 55;
       sensorData.label = "IAT: ";
       sensorData.value = 100.2;
       sensorData.displayValue = String(round(sensorData.value), 0);
+      sensorData.alert = sensorData.value > 150;
       break;
     }
   }
