@@ -55,8 +55,8 @@ SensorData GetSensorData(Sensor sensor) {
   switch(sensor) {
     case oilPressure:
     {
-      sensorData.x = 0;
-      sensorData.y = 8;
+      sensorData.x = 5;
+      sensorData.y = 14;
       sensorData.label = "OP: ";
       
       double oilPressureVoltage = readAnalogInput(sensor, true);
@@ -66,8 +66,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case afr:
     {
-      sensorData.x = 70;
-      sensorData.y = 32;
+      sensorData.x = 64;
+      sensorData.y = 36;
       sensorData.label = "AFR: ";
 
       double afrVoltage = readAnalogInput(sensor, true);
@@ -79,8 +79,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case ethanolContent:
     {
-      sensorData.x = 0;
-      sensorData.y = 32;
+      sensorData.x = 5;
+      sensorData.y = 36;
       sensorData.label = "E%: ";
 
       double ethanolContentVoltage = readAnalogInput(sensor, true);
@@ -90,8 +90,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case boost:
     {
-      sensorData.x = 70;
-      sensorData.y = 56;
+      sensorData.x = 64;
+      sensorData.y = 58;
       sensorData.label = "BST: ";
       sensorData.value = 24.8;
       sensorData.displayValue = String(sensorData.value, 1);
@@ -99,8 +99,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case oilTemp:
     {
-      sensorData.x = 70;
-      sensorData.y = 8;
+      sensorData.x = 64;
+      sensorData.y = 14;
       sensorData.label = "OT: ";
       sensorData.value = 255.3;
       sensorData.displayValue = String(round(sensorData.value), 0);
@@ -108,8 +108,8 @@ SensorData GetSensorData(Sensor sensor) {
     }
     case intakeAirTemp:
     {
-      sensorData.x = 0;
-      sensorData.y = 56;
+      sensorData.x = 5;
+      sensorData.y = 58;
       sensorData.label = "IAT: ";
       sensorData.value = 100.2;
       sensorData.displayValue = String(round(sensorData.value), 0);
