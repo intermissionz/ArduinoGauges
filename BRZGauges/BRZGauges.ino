@@ -17,6 +17,9 @@ Adafruit_SH1106 display(OLED_RESET);
 Sensor oilPressureSensor = oilPressure;
 Sensor afrSensor = afr;
 Sensor ethanolContentSensor = ethanolContent;
+Sensor boostSensor = boost;
+Sensor oilTempSensor = oilTemp;
+Sensor intakeAirTempSensor = intakeAirTemp;
 
 void setup() {
   Serial.begin(9600);
@@ -25,7 +28,7 @@ void setup() {
   delay(2000);
   display.setTextSize(1);
   display.setTextColor(WHITE);
-  display.setFont(&tahoma6pt7b);
+  display.setFont(&calibri8pt7b);
 }
 
 void loop() {
@@ -33,12 +36,9 @@ void loop() {
   DisplaySensorReading(oilPressureSensor);
   DisplaySensorReading(afrSensor);
   DisplaySensorReading(ethanolContentSensor);
-  display.setCursor(70, 56);
-  display.println("BST: 25");
-  display.setCursor(0, 56);
-  display.println("IAT: 100");
-  display.setCursor(70, 8);
-  display.println("OT: 255");
+  DisplaySensorReading(boostSensor);
+  DisplaySensorReading(oilTempSensor);
+  DisplaySensorReading(intakeAirTempSensor);
   display.display();
 }
 
@@ -46,7 +46,7 @@ void DisplaySensorReading(Sensor sensor) {
   SensorData sensorData = GetSensorData(sensor);
   display.setCursor(sensorData.x, sensorData.y);
   display.print(sensorData.label);
-  display.println(sensorData.value);
+  display.println(sensorData.displayValue);
 }
 
 SensorData GetSensorData(Sensor sensor) {
@@ -61,19 +61,20 @@ SensorData GetSensorData(Sensor sensor) {
       
       double oilPressureVoltage = readAnalogInput(sensor, true);
       sensorData.value = -3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307;
+      sensorData.displayValue = String(round(sensorData.value), 0);
       break;
     }
     case afr:
     {
       sensorData.x = 70;
       sensorData.y = 32;
-      sensorData.label = "AFR:";
+      sensorData.label = "AFR: ";
 
       double afrVoltage = readAnalogInput(sensor, true);
       double afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
-      Sensor ethanolContentSensor = ethanolContent;
       SensorData ethanolContent = GetSensorData(ethanolContentSensor);
       sensorData.value = ((ethanolContent.value / 100) * 9.0078 + (1 - (ethanolContent.value / 100)) * 14.64) * afrLambda;
+      sensorData.displayValue = String(sensorData.value, 1);
       break;
     }
     case ethanolContent:
@@ -84,31 +85,41 @@ SensorData GetSensorData(Sensor sensor) {
 
       double ethanolContentVoltage = readAnalogInput(sensor, true);
       sensorData.value = ethanolContentVoltage * 20;
+      sensorData.displayValue = String(round(sensorData.value), 0);
       break;
     }
     case boost:
     {
+      sensorData.x = 70;
+      sensorData.y = 56;
+      sensorData.label = "BST: ";
+      sensorData.value = 24.8;
+      sensorData.displayValue = String(sensorData.value, 1);
       break;
     }
     case oilTemp:
     {
+      sensorData.x = 70;
+      sensorData.y = 8;
+      sensorData.label = "OT: ";
+      sensorData.value = 255.3;
+      sensorData.displayValue = String(round(sensorData.value), 0);
       break;
     }
-    case chargeTemp:
-    {
-      break;
-    }
-    default:
+    case intakeAirTemp:
     {
       sensorData.x = 0;
-      sensorData.y = 0;
-      sensorData.label = "Unknown";
-      sensorData.value = 0.0;
+      sensorData.y = 56;
+      sensorData.label = "IAT: ";
+      sensorData.value = 100.2;
+      sensorData.displayValue = String(round(sensorData.value), 0);
+      break;
     }
   }
 
   return sensorData;
 }
+
 double readAnalogInput(Sensor sensor, bool useMultiplier) {
   double value;
   value = analogRead(sensor);
