@@ -28,6 +28,7 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setFont(&calibri8pt7b);
+  delay(5000);
 }
 
 void loop() {
