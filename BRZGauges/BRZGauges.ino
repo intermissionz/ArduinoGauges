@@ -100,8 +100,30 @@ SensorData GetSensorData(Sensor sensor) {
     {
       sensorData.x = 64;
       sensorData.y = 55;
+      Serial.println("0133");
+      delay(250);
+      while(Serial.available() > 0) {
+        sensorData.BTDataIn=0;
+        sensorData.BTCharIn=0;
+        sensorData.BTDataIn = Serial.read();
+        sensorData.BTCharIn=char(sensorData.BTDataIn);
+        sensorData.prePrecursorValue = sensorData.prePrecursorValue + sensorData.BTCharIn;
+      }
+      sensorData.precursorValue = sensorData.prePrecursorValue.substring(11,13);
+      sensorData.tempValue = strtol(sensorData.precursorValue.c_str(),NULL,16); // atmospheric pressure in kPa
+      Serial.println("010b");
+      delay(250);
+      while(Serial.available() > 0) {
+        sensorData.BTDataIn=0;
+        sensorData.BTCharIn=0;
+        sensorData.BTDataIn = Serial.read();
+        sensorData.BTCharIn=char(sensorData.BTDataIn);
+        sensorData.prePrecursorValue = sensorData.prePrecursorValue + sensorData.BTCharIn;
+      }
+      sensorData.precursorValue = sensorData.prePrecursorValue.substring(11,13);
+      sensorData.value = (strtol(sensorData.precursorValue.c_str(),NULL,16) - sensorData.tempValue) * .14503773773020923; // convert hex to decimal and kPa to psi
       sensorData.label = "BST: ";
-      sensorData.value = 24.8;
+      //sensorData.value = 24.8;
       sensorData.displayValue = String(sensorData.value, 1);
       sensorData.alert = sensorData.value >= 25;
       break;
@@ -139,3 +161,16 @@ double readAnalogInput(Sensor sensor, bool useMultiplier) {
 
   return value;
 }
+
+/*void ReadBTData(Sensor sensor)
+{
+SensorData.prePrecursorValue="";  
+  while(Serial.available() > 0)
+  {
+    SensorData.BTDataIn=0;
+    SensorData.BTCharIn=0;
+    SensorData.BTDataIn = Serial.read();
+    SensorData.BTCharIn=char(BTDataIn);
+    SensorData.prePrecursorValue = SensorData.prePrecursorValue + SensorData.BTCharIn;
+  }
+}*/
