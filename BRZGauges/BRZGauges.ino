@@ -29,6 +29,7 @@ void setup() {
   display.setTextColor(WHITE);
   display.setFont(&calibri8pt7b);
   delay(5000);
+  Serial.println("AT SH 7E0"); // change CAN header to BRZ-specific 7E0
 }
 
 void loop() {
@@ -143,8 +144,19 @@ SensorData GetSensorData(Sensor sensor) {
     {
       sensorData.x = 5;
       sensorData.y = 55;
+      Serial.println("010f");
+      delay(250);
+      while(Serial.available() > 0) {
+        sensorData.BTDataIn=0;
+        sensorData.BTCharIn=0;
+        sensorData.BTDataIn = Serial.read();
+        sensorData.BTCharIn=char(sensorData.BTDataIn);
+        sensorData.prePrecursorValue = sensorData.prePrecursorValue + sensorData.BTCharIn;
+      }
+      sensorData.precursorValue = sensorData.prePrecursorValue.substring(11,13);
+      sensorData.value = (strtol(sensorData.precursorValue.c_str(),NULL,16) - 40) * 1.8 + 32; // IAT in C then converted to F
       sensorData.label = "IAT: ";
-      sensorData.value = 100.2;
+      //sensorData.value = 100.2;
       sensorData.displayValue = String(round(sensorData.value), 0);
       sensorData.alert = sensorData.value > 150;
       break;
