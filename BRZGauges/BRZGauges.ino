@@ -29,7 +29,7 @@ void loop() {
 void DisplaySensorReading(byte sensor) {
   byte x, y, precision;
   float displayValue;
-  char label[5];
+  char label[6];
   
   switch(sensor) {
     case 0: //oilPressure
