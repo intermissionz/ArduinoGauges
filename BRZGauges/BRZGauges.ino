@@ -1,119 +1,132 @@
-/*libz*/
-#include <Adafruit_GFX.h>
-#include <Adafruit_SH1106.h>
-#include <EEPROM.h>
-#include <math.h>
-#include <SoftwareSerial.h>
-#include <Timer.h>
-#include <Wire.h>
-/*localz - font loading requires a function from the GFX library, so these must be loaded after the libz*/
-#include "sensor.h"
+#include <Arduino.h>
+#include <string.h>
+#include "Adafruit_SH1106.h"
 #include "calibri8pt7b.h"
-#include "tahoma6pt7b.h"
-/*constantz*/
-#define OLED_RESET 4
-/*initializationz*/
-Adafruit_SH1106 display(OLED_RESET);
-Sensor oilPressureSensor = oilPressure;
-Sensor afrSensor = afr;
-Sensor ethanolContentSensor = ethanolContent;
+
+Adafruit_SH1106 display(4);
+byte ethanolContent = 0;
+float barometricPressure = 0.0;
 
 void setup() {
-  Serial.begin(9600);
-  delay(200);
+  Serial.begin(115200);
+  delay(100);
   display.begin(SH1106_SWITCHCAPVCC, 0x3C);
-  delay(2000);
+  delay(1000);
   display.setTextSize(1);
   display.setTextColor(WHITE);
-  display.setFont(&tahoma6pt7b);
+  display.setFont(&calibri8pt7b);
+  //while (!obdInit()); //init connection until it succeeds
 }
 
 void loop() {
   display.clearDisplay();
-  DisplaySensorReading(oilPressureSensor);
-  DisplaySensorReading(afrSensor);
-  DisplaySensorReading(ethanolContentSensor);
-  display.setCursor(70, 56);
-  display.println("BST: 25");
-  display.setCursor(0, 56);
-  display.println("IAT: 100");
-  display.setCursor(70, 8);
-  display.println("OT: 255");
+  for(byte sensor = 0; sensor <= 5; sensor++) {
+    DisplaySensorReading(sensor);    
+  }
   display.display();
 }
 
-void DisplaySensorReading(Sensor sensor) {
-  SensorData sensorData = GetSensorData(sensor);
-  display.setCursor(sensorData.x, sensorData.y);
-  display.print(sensorData.label);
-  display.println(sensorData.value);
-}
-
-SensorData GetSensorData(Sensor sensor) {
-  SensorData sensorData;
+void DisplaySensorReading(byte sensor) {
+  byte x, y, precision;
+  float displayValue;
+  char label[5];
   
   switch(sensor) {
-    case oilPressure:
-    {
-      sensorData.x = 0;
-      sensorData.y = 8;
-      sensorData.label = "OP: ";
+    case 0: //oilPressure
+    { //analog input 0
+      x = 5;
+      y = 15;
+      precision = 0;
+      strcpy(label, "OP: ");
       
       double oilPressureVoltage = readAnalogInput(sensor, true);
-      sensorData.value = -3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307;
+      displayValue = round(-3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307);
       break;
     }
-    case afr:
-    {
-      sensorData.x = 70;
-      sensorData.y = 32;
-      sensorData.label = "AFR:";
-
-      double afrVoltage = readAnalogInput(sensor, true);
-      double afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
-      Sensor ethanolContentSensor = ethanolContent;
-      SensorData ethanolContent = GetSensorData(ethanolContentSensor);
-      sensorData.value = ((ethanolContent.value / 100) * 9.0078 + (1 - (ethanolContent.value / 100)) * 14.64) * afrLambda;
+    case 1: //ethanolContent
+    { //analog input 1
+      x = 5;
+      y = 35;
+      precision = 0;
+      strcpy(label, "E%: ");
+      
+      float ethanolContentVoltage = readAnalogInput(sensor, true);
+      displayValue = round(ethanolContentVoltage * 20);
+      ethanolContent = displayValue; //afr calculation needs this so store it in a global
       break;
     }
-    case ethanolContent:
-    {
-      sensorData.x = 0;
-      sensorData.y = 32;
-      sensorData.label = "E%: ";
-
-      double ethanolContentVoltage = readAnalogInput(sensor, true);
-      sensorData.value = ethanolContentVoltage * 20;
+    case 2: //afr
+    { //analog input 2
+      x = 64;
+      y = 35;
+      precision = 1;
+      strcpy(label, "AFR: ");
+      
+      float afrVoltage = readAnalogInput(sensor, true);
+      float afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
+      displayValue = ((ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64) * afrLambda;
       break;
     }
-    case boost:
-    {
+    case 3: //boost
+    { //obd - barometric pressure pid 0x33, absolute manifold pressure pid 0x0b
+      x = 64;
+      y = 55;
+      precision = 1;
+      strcpy(label, "BST: ");
+      
+      if(barometricPressure <= 0) { //only read barometric pressure pid if its value hasn't already been set. pid: 0x33
+        barometricPressure = 14;
+      }
+      int manifoldAbsolutePressure; //pid 0x0b
+      int boostkpa = manifoldAbsolutePressure - barometricPressure;
+      float boostMultiplier = 0.14503773800722; //default to psi multiplier
+      if(boostkpa <= 0) {
+        boostMultiplier = 0.29529983071445; //set to inHG multiplier if boost <= 0
+      }
+      displayValue = boostkpa * boostMultiplier;
       break;
     }
-    case oilTemp:
-    {
+    case 4: //oilTemp
+    { //obd - pid 2101
+      x = 64;
+      y = 15;
+      precision = 0;
+      strcpy(label, "OT: ");
+      
+      displayValue = 225;
       break;
     }
-    case chargeTemp:
-    {
+    case 5: //intakeAirTemp
+    { //obd - pid 0x0f
+      x = 5;
+      y = 55;
+      precision = 0;
+      strcpy(label, "IAT: ");
+      
+      displayValue = 102;
       break;
-    }
-    default:
-    {
-      sensorData.x = 0;
-      sensorData.y = 0;
-      sensorData.label = "Unknown";
-      sensorData.value = 0.0;
     }
   }
 
-  return sensorData;
+  display.setCursor(x, y);
+  display.print(label);
+  display.println(displayValue, precision);
+  displayDrawRectangle(x, y);
 }
-double readAnalogInput(Sensor sensor, bool useMultiplier) {
-  double value;
-  value = analogRead(sensor);
+
+void displayDrawRectangle(byte x, byte y) {
+  if(x == 5) { //need to draw rectangle differently depending on which column the reading is in
+    display.drawRect(x - 5, y - 15, 61, 21, 1);
+  }
+  else {
+    display.drawRect(x - 4, y - 15, 68, 21, 1);
+  }  
+}
+
+float readAnalogInput(byte sensor, bool useMultiplier) {
+  float value = analogRead(sensor);
   if(useMultiplier)
-    value = value * (5.0 / 1023.0); 
+    value *= (5.0 / 1023.0); 
 
   return value;
 }
