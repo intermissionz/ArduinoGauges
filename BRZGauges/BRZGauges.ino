@@ -129,7 +129,8 @@ void DisplaySensorReading(byte sensor) {
       byte responseLength = obdSendCommand(obd_cmd, buffer);
       
       if(responseLength > 0 && !strstr(buffer, "NO DATA")) {
-        displayValue = (obdParseResponse(PID_INTAKE_AIR_TEMP, buffer) - 40) * 1.8 + 32;
+        byte intakeAirTemp = obdParseResponse(PID_INTAKE_AIR_TEMP, buffer) - 40;
+        displayValue = round(intakeAirTemp * 1.8 + 32);
       }
       break;
     }
