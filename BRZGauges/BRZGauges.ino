@@ -1,11 +1,16 @@
 #include <Arduino.h>
+#include <Adafruit_GFX.h>
 #include <string.h>
 #include "Adafruit_SH1106.h"
 #include "calibri8pt7b.h"
 
+#define OBD_TIMEOUT 3
+#define PID_ABSOLUTE_MANIFOLD_PRESSURE 0x0b
+#define PID_BAROMETRIC_PRESSURE 0x33
+#define PID_INTAKE_AIR_TEMP 0x0f
+#define PID_OIL_TEMP 0x01
 Adafruit_SH1106 display(4);
 byte ethanolContent = 0;
-float barometricPressure = 0.0;
 
 void setup() {
   Serial.begin(115200);
@@ -15,7 +20,7 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setFont(&calibri8pt7b);
-  //while (!obdInit()); //init connection until it succeeds
+  while(obdInit()); //continue initializing until it successfully completes
 }
 
 void loop() {
@@ -69,41 +74,63 @@ void DisplaySensorReading(byte sensor) {
     }
     case 3: //boost
     { //obd - barometric pressure pid 0x33, absolute manifold pressure pid 0x0b
+      char obd_cmd[8], buffer[32];
       x = 64;
       y = 55;
       precision = 1;
       strcpy(label, "BST: ");
-      
-      if(barometricPressure <= 0) { //only read barometric pressure pid if its value hasn't already been set. pid: 0x33
-        barometricPressure = 14;
+
+      sprintf(obd_cmd, "%02X%02X\r", 1, PID_BAROMETRIC_PRESSURE);
+      byte responseLength = obdSendCommand(obd_cmd, buffer);
+
+      if(responseLength > 0 && !strstr(buffer, "NO DATA")) {
+        byte barometricPressure = obdParseResponse(PID_BAROMETRIC_PRESSURE, buffer);
+  
+        sprintf(obd_cmd, "%02X%02X\r", 1, PID_ABSOLUTE_MANIFOLD_PRESSURE);
+        responseLength = obdSendCommand(obd_cmd, buffer);
+        
+        if(responseLength > 0 && !strstr(buffer, "NO DATA")) {
+          byte absoluteManifoldPressure = obdParseResponse(PID_ABSOLUTE_MANIFOLD_PRESSURE, buffer);
+          byte boostkpa = absoluteManifoldPressure - barometricPressure;
+          float boostMultiplier = 0.14503773800722; //default to psi multiplier
+          if(boostkpa <= 0) {
+            boostMultiplier = 0.29529983071445; //set to inHG multiplier if boost <= 0
+          }
+          displayValue = boostkpa * boostMultiplier;
+        }
       }
-      int manifoldAbsolutePressure; //pid 0x0b
-      int boostkpa = manifoldAbsolutePressure - barometricPressure;
-      float boostMultiplier = 0.14503773800722; //default to psi multiplier
-      if(boostkpa <= 0) {
-        boostMultiplier = 0.29529983071445; //set to inHG multiplier if boost <= 0
-      }
-      displayValue = boostkpa * boostMultiplier;
       break;
     }
     case 4: //oilTemp
     { //obd - pid 2101
+      char obd_cmd[8], buffer[64];
       x = 64;
       y = 15;
       precision = 0;
       strcpy(label, "OT: ");
+
+      sprintf(obd_cmd, "%02X%02X\r", 0x21, PID_OIL_TEMP);
+      byte responseLength = obdSendCommand(obd_cmd, buffer);
       
-      displayValue = 225;
+      if(responseLength > 0 && !strstr(buffer, "NO DATA")) { //no idea how to parse this yet, let's see how long the obd response is
+        displayValue = responseLength;
+      }
       break;
     }
     case 5: //intakeAirTemp
     { //obd - pid 0x0f
+      char obd_cmd[8], buffer[32];
       x = 5;
       y = 55;
       precision = 0;
       strcpy(label, "IAT: ");
       
-      displayValue = 102;
+      sprintf(obd_cmd, "%02X%02X\r", 1, PID_INTAKE_AIR_TEMP);
+      byte responseLength = obdSendCommand(obd_cmd, buffer);
+      
+      if(responseLength > 0 && !strstr(buffer, "NO DATA")) {
+        displayValue = (obdParseResponse(PID_INTAKE_AIR_TEMP, buffer) - 40) * 1.8 + 32;
+      }
       break;
     }
   }
@@ -129,4 +156,98 @@ float readAnalogInput(byte sensor, bool useMultiplier) {
     value *= (5.0 / 1023.0); 
 
   return value;
+}
+
+//on initialization, send commands ATZ -> ATE0 -> ATH0 -> ATSP6 -> AT SH 7E0
+bool obdInit()
+{
+  const char *initcmd[] = {"ATZ\r", "ATE0\r", "ATH0\r", "ATSP6\r", "AT SH 7E0\r"};
+  char buffer[32];
+
+  for (byte i = (sizeof(initcmd) - 1); i != 0; i--) {
+    byte responseLength = obdSendCommand(initcmd[i], buffer);
+    if(responseLength <= 0 || strstr(buffer, "NO DATA")) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int obdReceive(char* buffer, int buffersize)
+{
+  byte n = 0;
+
+  while(Serial.available()) {
+    char c = Serial.read();
+    if (n < buffersize - 1) {
+      if (c == '.' && n > 2 && buffer[n - 1] == '.' && buffer[n - 2] == '.') {
+        // waiting for signal
+        n = 0;
+      } 
+      else {
+        if (c == '\r' || c == '\n' || c == ' ') {
+          if (n == 0 || buffer[n - 1] == '\r' || buffer[n - 1] == '\n') continue;
+        }
+        buffer[n++] = c;
+      }
+    }
+  }
+
+  return n;
+}
+
+int obdSendCommand(const char* cmd, char* buffer)
+{
+  Serial.write(cmd);
+  unsigned long startTime = millis();
+  byte responseTime = 0;
+  
+  while(!Serial.available() && responseTime < OBD_TIMEOUT) { //wait for a response up to the OBD_TIMEOUT
+    responseTime = floor((millis() - startTime) / 1000);
+  }
+  
+  if(responseTime < OBD_TIMEOUT) { //request didn't time out 
+     return obdReceive(buffer, sizeof(buffer));
+  }
+  
+  return 0;
+}
+
+byte obdParseResponse(byte requestPID, char* buffer) {
+  char *p = buffer;
+  
+  while ((p = strstr(p, "41 "))) {
+    p += 3;
+    byte responsePID = hex2byte(p);
+    if (requestPID == responsePID) {
+        p += 2;
+        if (*p != ' ')
+            return hex2byte(p);
+    }
+  }
+  
+  return 0;
+}
+
+byte hex2byte(const char *p)
+{
+  byte c1 = *p;
+  byte c2 = *(p + 1);
+  if (c1 >= 'A' && c1 <= 'F')
+    c1 -= 7;
+  else if (c1 >='a' && c1 <= 'f')
+      c1 -= 39;
+  else if (c1 < '0' || c1 > '9')
+    return 0;
+
+  if (c2 == 0)
+    return (c1 & 0xf);
+  else if (c2 >= 'A' && c2 <= 'F')
+    c2 -= 7;
+  else if (c2 >= 'a' && c2 <= 'f')
+      c2 -= 39;
+  else if (c2 < '0' || c2 > '9')
+    return 0;
+
+  return c1 << 4 | (c2 & 0xf);
 }
