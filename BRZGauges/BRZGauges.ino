@@ -165,7 +165,7 @@ bool obdInit()
   const char *initcmd[] = {"ATZ\r", "ATE0\r", "ATH0\r", "ATSP6\r", "AT SH 7E0\r"};
   char buffer[32];
 
-  for (byte i = (sizeof(initcmd) - 1); i != 0; i--) {
+  for (byte i = 0; i < (sizeof(initcmd) / sizeof(initcmd[0])); i++) {
     byte responseLength = obdSendCommand(initcmd[i], buffer);
     if(responseLength <= 0 || strstr(buffer, "NO DATA")) {
       return false;
