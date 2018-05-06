@@ -14,6 +14,7 @@ void setup() {
   delay(1000);
   display.setFont(u8g2_font_chroma48medium8_8u);
   display.setDrawColor(1); //not sure if this is needed. try 0 if text doesn't display
+  while(!CAN.begin(500E3)); //wait until can bus is ready
   CAN.filter(0x7e8);
 }
 
