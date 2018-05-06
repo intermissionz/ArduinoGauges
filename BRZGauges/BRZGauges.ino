@@ -8,22 +8,24 @@
 #define PID_INTAKE_AIR_TEMP 0x0f
 #define PID_OIL_TEMP 0x01
 byte ethanolContent = 0;
-U8G2_SH1106_128X64_NONAME_1_4W_HW_SPI display(U8G2_R0, 10, 9, 8);
+U8G2_SH1106_128X64_NONAME_1_HW_I2C display(U8G2_R0, U8X8_PIN_NONE);
 
 void setup() {
   delay(1000);
-  display.setFont(u8g2_font_chroma48medium8_8u);
-  display.setDrawColor(1); //not sure if this is needed. try 0 if text doesn't display
   while(!CAN.begin(500E3)); //wait until can bus is ready
   CAN.filter(0x7e8);
+  display.begin();
+  display.firstPage();
 }
 
 void loop() {
-  display.clearDisplay();
+  display.setFont(u8g2_font_chroma48medium8_8u);
+  
   for (byte sensor = 0; sensor <= 5; sensor++) {
     DisplaySensorReading(sensor);
   }
-  display.display();
+  
+  display.nextPage();
 }
 
 void DisplaySensorReading(byte sensor) {
