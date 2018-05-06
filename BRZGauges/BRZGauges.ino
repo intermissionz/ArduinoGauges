@@ -11,8 +11,6 @@ byte ethanolContent = 0;
 U8G2_SH1106_128X64_NONAME_1_4W_HW_SPI display(U8G2_R0, 10, 9, 8);
 
 void setup() {
-  Serial.begin(115200);
-  delay(100);
   delay(1000);
   display.setFont(u8g2_font_chroma48medium8_8u);
   display.setDrawColor(1); //not sure if this is needed. try 0 if text doesn't display
@@ -70,7 +68,6 @@ void DisplaySensorReading(byte sensor) {
       }
     case 3: //boost
       { //obd - barometric pressure pid 0x33, absolute manifold pressure pid 0x0b
-        char obd_cmd[8], buffer[32];
         x = 64;
         y = 55;
         precision = 1;
@@ -92,7 +89,6 @@ void DisplaySensorReading(byte sensor) {
       }
     case 4: //oilTemp
       { //obd - pid 2101
-        char obd_cmd[8], buffer[64];
         x = 64;
         y = 15;
         precision = 0;
@@ -103,7 +99,6 @@ void DisplaySensorReading(byte sensor) {
       }
     case 5: //intakeAirTemp
       { //obd - pid 0x0f
-        char obd_cmd[8], buffer[32];
         x = 5;
         y = 55;
         precision = 0;
