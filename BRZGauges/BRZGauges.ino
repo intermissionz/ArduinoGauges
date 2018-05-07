@@ -12,14 +12,21 @@ byte ethanolContent = 0;
 Adafruit_SH1106 display(4);
 
 void setup() {
-  delay(1000);
-  while(!CAN.begin(500E3)); //wait until can bus is ready
+  //Serial.begin(9600);
+  //Serial.println("Setup Start");
+  if (!CAN.begin(500E3)) {
+    //Serial.println("Starting CAN failed!");
+    while (1);
+  } else {
+    //Serial.println("CAN succeeded");
+  }
   CAN.filter(0x7e8);
   display.begin(SH1106_SWITCHCAPVCC, 0x3C);
   delay(1000);
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setFont(&calibri8pt7b);
+  //Serial.println("setup done");
 }
 
 void loop() {
@@ -29,7 +36,7 @@ void loop() {
     DisplaySensorReading(sensor);
   }
   display.display();
-  delay(250);
+  delay(2000);
 }
 
 void DisplaySensorReading(byte sensor) {
@@ -47,6 +54,7 @@ void DisplaySensorReading(byte sensor) {
 
         double oilPressureVoltage = readAnalogInput(sensor, true);
         value = round(-3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307);
+        //Serial.println("OP passed");
         break;
       }
     case 1: //ethanolContent
@@ -59,6 +67,7 @@ void DisplaySensorReading(byte sensor) {
         float ethanolContentVoltage = readAnalogInput(sensor, true);
         value = round(ethanolContentVoltage * 20);
         ethanolContent = value; //afr calculation needs this so store it in a global
+        //Serial.println("E% passed");
         break;
       }
     case 2: //afr
@@ -72,6 +81,7 @@ void DisplaySensorReading(byte sensor) {
         float afrVoltage = readAnalogInput(sensor, true);
         float afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
         value = ((ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64) * afrLambda;
+        //Serial.println("AFR passed");
         break;
       }
     case 3: //boost
@@ -81,9 +91,10 @@ void DisplaySensorReading(byte sensor) {
         precision = 1;
         strncpy(label, "BST: ", sizeof(label));
 
-        int barometricPressure = 101;//canBusRequest(PID_BAROMETRIC_PRESSURE);
+        //Serial.println("boost start");
+        int barometricPressure = canBusRequest(PID_BAROMETRIC_PRESSURE);
         if(barometricPressure != 0) {
-          int absoluteManifoldPressure = 35;//canBusRequest(PID_ABSOLUTE_MANIFOLD_PRESSURE);
+          int absoluteManifoldPressure = canBusRequest(PID_ABSOLUTE_MANIFOLD_PRESSURE);
           if(absoluteManifoldPressure != 0) {
             byte boostkpa = absoluteManifoldPressure - barometricPressure;
             float boostMultiplier = 0.14503773800722; //default to psi multiplier
@@ -93,6 +104,7 @@ void DisplaySensorReading(byte sensor) {
             value = boostkpa * boostMultiplier;
           }
         }
+        //Serial.println("BST passed");
         break;
       }
     case 4: //oilTemp
@@ -103,6 +115,7 @@ void DisplaySensorReading(byte sensor) {
         strncpy(label, "OT: ", sizeof(label));
 
         value = 125;
+        //Serial.println("OT passed");
         break;
       }
     case 5: //intakeAirTemp
@@ -112,10 +125,11 @@ void DisplaySensorReading(byte sensor) {
         precision = 0;
         strncpy(label, "IAT: ", sizeof(label));
 
-        int intakeAirTemp = 70;//canBusRequest(PID_INTAKE_AIR_TEMP);
+        int intakeAirTemp = canBusRequest(PID_INTAKE_AIR_TEMP);
         if(intakeAirTemp != 0) {
           value = round((intakeAirTemp - 40) * 1.8 + 32);
         }
+        //Serial.println("IAT passed");
         break;
       }
   }
@@ -143,19 +157,13 @@ float readAnalogInput(byte sensor, bool useMultiplier) {
 }
 
 int canBusRequest(const int pid) {
-  byte responseTime = 0;
   CAN.beginPacket(0x7df, 8);
   CAN.write(0x02);
   CAN.write(0x01);
   CAN.write(pid);
   CAN.endPacket();
-  int startTime = millis();
   
-  while (CAN.parsePacket() == 0 || CAN.read() < 3 || CAN.read() != 0x41 || CAN.read() != pid || responseTime < OBD_TIMEOUT) { //wait for correct response
-    responseTime = floor((millis() - startTime) / 1000); 
-  }
-  if(responseTime > OBD_TIMEOUT)
-    return 0;
-  else
-    return CAN.read();
+  while (CAN.parsePacket() == 0 || CAN.read() < 3 || CAN.read() != 0x41 || CAN.read() != pid); //wait for correct response
+
+  return CAN.read();
 }
