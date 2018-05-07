@@ -5,9 +5,14 @@
 
 #define OBD_TIMEOUT 3
 #define PID_ABSOLUTE_MANIFOLD_PRESSURE 0x0b
+#define PID_AFR_LAMBDA 0x24
 #define PID_BAROMETRIC_PRESSURE 0x33
 #define PID_INTAKE_AIR_TEMP 0x0f
 #define PID_OIL_TEMP 0x01
+#define NORMAL_MODE 0x01
+#define OIL_TEMP_MODE 0x21
+#define NORMAL_RESPONSE 0x41
+#define OIL_TEMP_RESPONSE 0x61
 byte ethanolContent = 0;
 Adafruit_SH1106 display(4);
 
@@ -31,10 +36,11 @@ void setup() {
 
 void loop() {
   display.clearDisplay();
-
+  
   for (byte sensor = 0; sensor <= 5; sensor++) {
     DisplaySensorReading(sensor);
   }
+  
   display.display();
   delay(2000);
 }
@@ -43,6 +49,7 @@ void DisplaySensorReading(byte sensor) {
   byte x, y, precision;
   float value;
   char label[6];
+  byte buffer[40];
 
   switch (sensor) {
     case 0: //oilPressure
@@ -77,11 +84,14 @@ void DisplaySensorReading(byte sensor) {
         precision = 1;
         strncpy(label, "AFR: ", sizeof(label));
         
-
-        float afrVoltage = readAnalogInput(sensor, true);
-        float afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
-        value = ((ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64) * afrLambda;
-        //Serial.println("AFR passed");
+        //float afrVoltage = readAnalogInput(sensor, true);
+        //float afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
+        byte responseLength = canBusRequest(NORMAL_MODE, PID_AFR_LAMBDA, NORMAL_RESPONSE, buffer);
+        if(responseLength > 1) {
+          float afrLambda = 2 / 65536 * (256 * buffer[0] + buffer[1]);
+          value = ((10 /*ethanolContent*/ / 100) * 9.0078 + (1 - (10 /*ethanolContent*/ / 100)) * 14.64) * afrLambda;
+          //Serial.println("AFR passed");
+        }
         break;
       }
     case 3: //boost
@@ -92,16 +102,18 @@ void DisplaySensorReading(byte sensor) {
         strncpy(label, "BST: ", sizeof(label));
 
         //Serial.println("boost start");
-        int barometricPressure = canBusRequest(PID_BAROMETRIC_PRESSURE);
-        if(barometricPressure != 0) {
-          int absoluteManifoldPressure = canBusRequest(PID_ABSOLUTE_MANIFOLD_PRESSURE);
-          if(absoluteManifoldPressure != 0) {
+        byte responseLength = canBusRequest(NORMAL_MODE, PID_BAROMETRIC_PRESSURE, NORMAL_RESPONSE, buffer);
+        if(responseLength > 0) {
+          byte barometricPressure = buffer[0];
+          responseLength = canBusRequest(NORMAL_MODE, PID_ABSOLUTE_MANIFOLD_PRESSURE, NORMAL_RESPONSE, buffer);
+          if(responseLength > 0) {
+            byte absoluteManifoldPressure = buffer[0];
             byte boostkpa = absoluteManifoldPressure - barometricPressure;
             float boostMultiplier = 0.14503773800722; //default to psi multiplier
             if(boostkpa <= 0) {
               boostMultiplier = 0.29529983071445; //set to inHG multiplier if boost <= 0
             }
-            value = boostkpa * boostMultiplier;
+            value = boostkpa * boostMultiplier; 
           }
         }
         //Serial.println("BST passed");
@@ -115,6 +127,11 @@ void DisplaySensorReading(byte sensor) {
         strncpy(label, "OT: ", sizeof(label));
 
         value = 125;
+        byte responseLength = canBusRequest(OIL_TEMP_MODE, PID_OIL_TEMP, OIL_TEMP_RESPONSE, buffer);
+        if(responseLength > 0) {
+          byte oilTemp = buffer[28]; //value should be in the 29th position because 61 and 01 are stripped in the canBusRequest function
+          value = round((oilTemp - 40) * 1.8 + 32);
+        }
         //Serial.println("OT passed");
         break;
       }
@@ -124,9 +141,9 @@ void DisplaySensorReading(byte sensor) {
         y = 55;
         precision = 0;
         strncpy(label, "IAT: ", sizeof(label));
-
-        int intakeAirTemp = canBusRequest(PID_INTAKE_AIR_TEMP);
-        if(intakeAirTemp != 0) {
+        byte responseLength = canBusRequest(NORMAL_MODE, PID_INTAKE_AIR_TEMP, NORMAL_RESPONSE, buffer);
+        if(responseLength > 0) {
+          byte intakeAirTemp = buffer[0];
           value = round((intakeAirTemp - 40) * 1.8 + 32);
         }
         //Serial.println("IAT passed");
@@ -156,14 +173,19 @@ float readAnalogInput(byte sensor, bool useMultiplier) {
   return value;
 }
 
-int canBusRequest(const int pid) {
+byte canBusRequest(const int mode, const int pid, const int responseType, byte* buffer) {
+  byte i = 0;
   CAN.beginPacket(0x7df, 8);
   CAN.write(0x02);
-  CAN.write(0x01);
+  CAN.write(mode);
   CAN.write(pid);
   CAN.endPacket();
   
-  while (CAN.parsePacket() == 0 || CAN.read() < 3 || CAN.read() != 0x41 || CAN.read() != pid); //wait for correct response
+  while (CAN.parsePacket() == 0 || CAN.read() < 3 || CAN.read() != responseType || CAN.read() != pid); //wait for correct response
 
-  return CAN.read();
+  while(CAN.available() && i <= 40) {
+    buffer[i++] = CAN.read();
+  }
+  
+  return i;
 }
