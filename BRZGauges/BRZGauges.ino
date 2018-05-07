@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <CAN.h>
-#include <U8g2lib.h>
+#include "Adafruit_SH1106.h"
+#include "calibri8pt7b.h"
 
 #define OBD_TIMEOUT 3
 #define PID_ABSOLUTE_MANIFOLD_PRESSURE 0x0b
@@ -8,26 +9,26 @@
 #define PID_INTAKE_AIR_TEMP 0x0f
 #define PID_OIL_TEMP 0x01
 byte ethanolContent = 0;
-U8G2_SH1106_128X64_NONAME_1_HW_I2C display(U8G2_R0, U8X8_PIN_NONE);
+Adafruit_SH1106 display(4);
 
 void setup() {
   delay(1000);
-  //while(!CAN.begin(500E3)); //wait until can bus is ready
-  //CAN.filter(0x7e8);
-  display.begin();
+  while(!CAN.begin(500E3)); //wait until can bus is ready
+  CAN.filter(0x7e8);
+  display.begin(SH1106_SWITCHCAPVCC, 0x3C);
+  delay(1000);
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setFont(&calibri8pt7b);
 }
 
 void loop() {
-  display.firstPage();
+  display.clearDisplay();
 
-  do {
-    display.setFont(u8g2_font_profont12_tf);
-    
-    for (byte sensor = 0; sensor <= 5; sensor++) {
-      DisplaySensorReading(sensor);
-    }
-  } while (display.nextPage());
-
+  for (byte sensor = 0; sensor <= 5; sensor++) {
+    DisplaySensorReading(sensor);
+  }
+  display.display();
   delay(250);
 }
 
@@ -125,12 +126,12 @@ void DisplaySensorReading(byte sensor) {
 }
 
 void displayDrawRectangle(byte x, byte y) {
-  if (x == 5) { //need to draw rectangle differently depending on which column the reading is in
-    display.drawFrame(x - 5, y - 15, 61, 21);
+  if(x == 5) { //need to draw rectangle differently depending on which column the reading is in
+    display.drawRect(x - 5, y - 15, 61, 21, 1);
   }
   else {
-    display.drawFrame(x - 4, y - 15, 68, 21);
-  }
+    display.drawRect(x - 4, y - 15, 68, 21, 1);
+  }  
 }
 
 float readAnalogInput(byte sensor, bool useMultiplier) {
