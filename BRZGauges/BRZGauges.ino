@@ -15,66 +15,77 @@ void setup() {
   while(!CAN.begin(500E3)); //wait until can bus is ready
   CAN.filter(0x7e8);
   display.begin();
-  display.firstPage();
 }
 
 void loop() {
-  display.setFont(u8g2_font_chroma48medium8_8u);
-  
-  for (byte sensor = 0; sensor <= 5; sensor++) {
-    DisplaySensorReading(sensor);
-  }
-  
-  display.nextPage();
+  display.firstPage();
+
+  do {
+    display.setFont(u8g2_font_chroma48medium8_8u);
+    
+    for (byte sensor = 0; sensor <= 5; sensor++) {
+      DisplaySensorReading(sensor);
+    }
+  } while (display.nextPage());
+
+  delay(250);
 }
 
 void DisplaySensorReading(byte sensor) {
-  byte x, y, precision;
-  float displayValue;
-  char label[6];
+  byte x, xOffset, y, precision;
+  float value;
+  char displayData[2][6];
 
   switch (sensor) {
     case 0: //oilPressure
       { //analog input 0
         x = 5;
+        xOffset = 10;
         y = 15;
         precision = 0;
-        strncpy(label, "OP: ", sizeof(label));
+        strncpy(displayData[0], "OP: ", sizeof(displayData[0]));
 
         double oilPressureVoltage = readAnalogInput(sensor, true);
-        displayValue = round(-3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307);
+        value = round(-3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307);
+        dtostrf(value, 5, 0, displayData[1]);
         break;
       }
     case 1: //ethanolContent
       { //analog input 1
         x = 5;
+        xOffset = 10;
         y = 35;
         precision = 0;
-        strcpy(label, "E%: ");
+        strncpy(displayData[0], "E%: ", sizeof(displayData[0]));
 
         float ethanolContentVoltage = readAnalogInput(sensor, true);
-        displayValue = round(ethanolContentVoltage * 20);
-        ethanolContent = displayValue; //afr calculation needs this so store it in a global
+        value = round(ethanolContentVoltage * 20);
+        ethanolContent = value; //afr calculation needs this so store it in a global
+        dtostrf(value, 5, 0, displayData[1]);
         break;
       }
     case 2: //afr
       { //analog input 2
         x = 64;
+        xOffset = 10;
         y = 35;
         precision = 1;
-        strcpy(label, "AFR: ");
+        strncpy(displayData[0], "AFR: ", sizeof(displayData[0]));
+        
 
         float afrVoltage = readAnalogInput(sensor, true);
         float afrLambda = 0.109364 * (afrVoltage * afrVoltage * afrVoltage) - 0.234466 * (afrVoltage * afrVoltage) + 0.306031 * afrVoltage + 0.71444;
-        displayValue = ((ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64) * afrLambda;
+        value = ((ethanolContent / 100) * 9.0078 + (1 - (ethanolContent / 100)) * 14.64) * afrLambda;
+        dtostrf(value, 5, 1, displayData[1]);
         break;
       }
     case 3: //boost
       { //obd - barometric pressure pid 0x33, absolute manifold pressure pid 0x0b
         x = 64;
+        xOffset = 10;
         y = 55;
         precision = 1;
-        strcpy(label, "BST: ");
+        strncpy(displayData[0], "BST: ", sizeof(displayData[0]));
 
         int barometricPressure = canBusRequest(PID_BAROMETRIC_PRESSURE);
         if(barometricPressure != 0) {
@@ -85,7 +96,8 @@ void DisplaySensorReading(byte sensor) {
             if(boostkpa <= 0) {
               boostMultiplier = 0.29529983071445; //set to inHG multiplier if boost <= 0
             }
-            displayValue = boostkpa * boostMultiplier;
+            value = boostkpa * boostMultiplier;
+            dtostrf(value, 5, 1, displayData[1]);
           }
         }
         break;
@@ -93,31 +105,34 @@ void DisplaySensorReading(byte sensor) {
     case 4: //oilTemp
       { //obd - pid 2101
         x = 64;
+        xOffset = 10;
         y = 15;
         precision = 0;
-        strcpy(label, "OT: ");
+        strncpy(displayData[0], "OT: ", sizeof(displayData[0]));
 
-        displayValue = 125;
+        value = 125;
+        dtostrf(value, 5, 0, displayData[1]);
         break;
       }
     case 5: //intakeAirTemp
       { //obd - pid 0x0f
         x = 5;
+        xOffset = 10;
         y = 55;
         precision = 0;
-        strcpy(label, "IAT: ");
+        strncpy(displayData[0], "IAT: ", sizeof(displayData[0]));
 
         int intakeAirTemp = canBusRequest(PID_INTAKE_AIR_TEMP);
         if(intakeAirTemp != 0) {
-          displayValue = round((intakeAirTemp - 40) * 1.8 + 32);
+          value = round((intakeAirTemp - 40) * 1.8 + 32);
+          dtostrf(value, 5, 0, displayData[1]);
         }
         break;
       }
   }
 
-  display.setCursor(x, y);
-  display.print(label);
-  display.println(displayValue, precision);
+  display.drawStr(x, y, displayData[0]);
+  display.drawStr((x + xOffset), y, displayData[1]);
   displayDrawRectangle(x, y);
 }
 
