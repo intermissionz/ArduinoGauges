@@ -32,7 +32,7 @@ void loop() {
 }
 
 void DisplaySensorReading(byte sensor) {
-  byte x, xOffset, y, precision;
+  byte x, xOffset, y;
   float value;
   char displayData[2][6];
 
@@ -42,7 +42,6 @@ void DisplaySensorReading(byte sensor) {
         x = 5;
         xOffset = 10;
         y = 15;
-        precision = 0;
         strncpy(displayData[0], "OP: ", sizeof(displayData[0]));
 
         double oilPressureVoltage = readAnalogInput(sensor, true);
@@ -55,7 +54,6 @@ void DisplaySensorReading(byte sensor) {
         x = 5;
         xOffset = 10;
         y = 35;
-        precision = 0;
         strncpy(displayData[0], "E%: ", sizeof(displayData[0]));
 
         float ethanolContentVoltage = readAnalogInput(sensor, true);
@@ -69,7 +67,6 @@ void DisplaySensorReading(byte sensor) {
         x = 64;
         xOffset = 10;
         y = 35;
-        precision = 1;
         strncpy(displayData[0], "AFR: ", sizeof(displayData[0]));
         
 
@@ -84,7 +81,6 @@ void DisplaySensorReading(byte sensor) {
         x = 64;
         xOffset = 10;
         y = 55;
-        precision = 1;
         strncpy(displayData[0], "BST: ", sizeof(displayData[0]));
 
         int barometricPressure = canBusRequest(PID_BAROMETRIC_PRESSURE);
@@ -107,7 +103,6 @@ void DisplaySensorReading(byte sensor) {
         x = 64;
         xOffset = 10;
         y = 15;
-        precision = 0;
         strncpy(displayData[0], "OT: ", sizeof(displayData[0]));
 
         value = 125;
@@ -119,7 +114,6 @@ void DisplaySensorReading(byte sensor) {
         x = 5;
         xOffset = 10;
         y = 55;
-        precision = 0;
         strncpy(displayData[0], "IAT: ", sizeof(displayData[0]));
 
         int intakeAirTemp = canBusRequest(PID_INTAKE_AIR_TEMP);
