@@ -32,7 +32,7 @@ void loop() {
 }
 
 void DisplaySensorReading(byte sensor) {
-  byte x, xOffset, y, precision;
+  byte x, y, precision;
   float value;
   char label[6];
 
@@ -40,7 +40,6 @@ void DisplaySensorReading(byte sensor) {
     case 0: //oilPressure
       { //analog input 0
         x = 5;
-        xOffset = 15;
         y = 15;
         precision = 0;
         strncpy(label, "OP: ", sizeof(label));
@@ -52,7 +51,6 @@ void DisplaySensorReading(byte sensor) {
     case 1: //ethanolContent
       { //analog input 1
         x = 5;
-        xOffset = 15;
         y = 35;
         precision = 0;
         strncpy(label, "E%: ", sizeof(label));
@@ -65,7 +63,6 @@ void DisplaySensorReading(byte sensor) {
     case 2: //afr
       { //analog input 2
         x = 64;
-        xOffset = 25;
         y = 35;
         precision = 1;
         strncpy(label, "AFR: ", sizeof(label));
@@ -79,7 +76,6 @@ void DisplaySensorReading(byte sensor) {
     case 3: //boost
       { //obd - barometric pressure pid 0x33, absolute manifold pressure pid 0x0b
         x = 64;
-        xOffset = 25;
         y = 55;
         precision = 1;
         strncpy(label, "BST: ", sizeof(label));
@@ -101,7 +97,6 @@ void DisplaySensorReading(byte sensor) {
     case 4: //oilTemp
       { //obd - pid 2101
         x = 64;
-        xOffset = 25;
         y = 15;
         precision = 0;
         strncpy(label, "OT: ", sizeof(label));
@@ -112,7 +107,6 @@ void DisplaySensorReading(byte sensor) {
     case 5: //intakeAirTemp
       { //obd - pid 0x0f
         x = 5;
-        xOffset = 15;
         y = 55;
         precision = 0;
         strncpy(label, "IAT: ", sizeof(label));
@@ -126,7 +120,6 @@ void DisplaySensorReading(byte sensor) {
   }
   display.setCursor(x, y);
   display.print(label);
-  display.setCursor((x + xOffset), y);
   display.print(value, precision);
   displayDrawRectangle(x, y);
 }
