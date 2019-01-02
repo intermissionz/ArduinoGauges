@@ -78,7 +78,7 @@ void DisplaySensorReading(byte sensor) {
         break;
       }
     case 2: //afr
-      { //analog input 2
+      { //obd - lambda pid 0x24
         x = 64;
         y = 35;
         precision = 1;
@@ -120,7 +120,7 @@ void DisplaySensorReading(byte sensor) {
         break;
       }
     case 4: //oilTemp
-      { //obd - pid 2101
+      /*{ //obd - pid 2101
         x = 64;
         y = 15;
         precision = 0;
@@ -134,7 +134,20 @@ void DisplaySensorReading(byte sensor) {
         }
         //Serial.println("OT passed");
         break;
-      }
+      }*/
+      { // analog input 4
+        float R1 = 11150, c1 = 1.143787531e-03, c2 = 2.305694337e-04, c3 = 0.7824155370e-07;
+        x = 64;
+        y = 15;
+        precision = 0;
+        strncpy(label, "OT: ", sizeof(label));
+        
+        int oilTempVoltage = readAnalogInput(sensor, true);
+        float R2 = R1 * (1023.0 / (float)Vo - 1.0);
+        float logR2 = log(R2);
+        float T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2)); //Steinhart-Hart equation
+        T = ((T - 273.15) * 9.0)/ 5.0 + 32.0; // convert K to C to F
+        T = (T * 9.0)/ 5.0 + 32.0; // convert C to F
     case 5: //intakeAirTemp
       { //obd - pid 0x0f
         x = 5;
