@@ -60,7 +60,7 @@ void DisplaySensorReading(byte sensor) {
         strncpy(label, "OP: ", sizeof(label));
 
         double oilPressureVoltage = readAnalogInput(sensor, true);
-        value = round(-3.13608 * (oilPressureVoltage * oilPressureVoltage) + 51.4897 * oilPressureVoltage - 35.1307);
+        value = round(37.5 * oilPressureVoltage - 18.75);
         //Serial.println("OP passed");
         break;
       }
