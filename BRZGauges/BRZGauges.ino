@@ -8,6 +8,7 @@
 #define PID_AFR_LAMBDA 0x24
 #define PID_BAROMETRIC_PRESSURE 0x33
 #define PID_INTAKE_AIR_TEMP 0x0f
+#define PID_SECONDARY_O2 0x15
 #define PID_OIL_TEMP 0x01
 #define NORMAL_MODE 0x01
 #define OIL_TEMP_MODE 0x21
@@ -71,8 +72,11 @@ void DisplaySensorReading(byte sensor) {
         precision = 0;
         strncpy(label, "E%: ", sizeof(label));
 
-        float ethanolContentVoltage = readAnalogInput(sensor, true);
-        value = round(ethanolContentVoltage * 20);
+        byte responseLength = canBusRequest(NORMAL_MODE, PID_SECONDARY_O2, NORMAL_RESPONSE, buffer);
+        if(responseLength > 1) {
+          float secondaryO2Voltage = 8 / 65536 * (256 * buffer[2] + buffer[3]);
+          value = (afrLambda - .5) * 25;
+        }
         ethanolContent = value; //afr calculation needs this so store it in a global
         //Serial.println("E% passed");
         break;
